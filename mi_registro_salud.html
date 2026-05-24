@@ -484,12 +484,19 @@
         <div style="font-size:12px;color:var(--text3);margin-top:2px">registro diario</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-        <div class="date-badge" id="todayBadge"></div>
         <button class="export-btn" onclick="exportCSV()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar CSV
         </button>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <div style="font-size:12px;color:var(--text3);flex-shrink:0">Registrando:</div>
+      <input type="date" id="active-date" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:7px 10px;font-size:13px;font-family:var(--font);color:var(--text);outline:none;cursor:pointer;" onchange="changeActiveDate(this.value)">
+      <button onclick="resetToToday()" style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;white-space:nowrap;font-family:var(--font)">Hoy</button>
+    </div>
+    <div id="past-day-notice" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-xs);padding:7px 12px;margin-top:8px;font-size:12px;color:var(--amber);">
+      ✏️ Editando día anterior — los cambios se guardarán en esa fecha
     </div>
   </div>
 
@@ -503,10 +510,6 @@
 
   <!-- ══════════════ MAÑANA ══════════════ -->
   <div id="tab-manana" class="content active">
-
-    <div class="alert">
-      <strong>⚠ Señal de alerta:</strong> Si ves sangre oscura tipo alquitrán, mareo, debilidad o dolor abdominal fuerte — no esperes, consulta a tu médico ese mismo día.
-    </div>
 
     <!-- CÓMO AMANECISTE -->
     <div class="card">
@@ -603,6 +606,7 @@
         <button class="chip" data-k="sang-no" onclick="tog(this,'on')"><span class="dot"></span>Sin sangrado hoy</button>
         <button class="chip" data-k="sang-roja" onclick="tog(this,'amber')"><span class="dot"></span>Sangre roja brillante (hemorroides)</button>
         <button class="chip" data-k="sang-oscura" onclick="tog(this,'warn')"><span class="dot"></span>⚠ Sangre oscura tipo alquitrán</button>
+        <div style="font-size:11px;color:var(--text3);padding:4px 2px;">Si es recurrente, menciónalo a tu médico.</div>
       </div>
     </div>
 
@@ -668,6 +672,26 @@
       </div>
     </div>
 
+    <!-- AGUA -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+        Agua de hoy
+      </div>
+      <div class="slider-row">
+        <span class="slider-name">Vasos tomados (8 oz c/u)</span>
+        <div class="slider-wrap">
+          <input type="range" min="0" max="12" value="6" step="1" id="s-agua" oninput="sv('agua',this.value);updAguaLabel(this.value)">
+          <span class="slider-val" id="sv-agua">6</span>
+        </div>
+      </div>
+      <div id="agua-label" style="font-size:12px;color:var(--amber);margin-bottom:10px;text-align:right;">≈ 48 oz — por debajo de 75 oz ⚠</div>
+      <div class="chip-grid">
+        <button class="chip" data-k="agua-meta" onclick="tog(this,'on')"><span class="dot"></span>Cumplí meta (75 oz)</button>
+        <button class="chip" data-k="agua-poca" onclick="tog(this,'warn')"><span class="dot"></span>Tomé menos de 75 oz</button>
+      </div>
+    </div>
+
     <!-- COMIDA -->
     <div class="card">
       <div class="card-title">
@@ -678,8 +702,18 @@
       <textarea id="com-d" rows="2" placeholder="ej. huevos + sourdough"></textarea>
       <div class="field-label">Almuerzo</div>
       <textarea id="com-a" rows="2" placeholder="ej. pollo + arroz + ensalada"></textarea>
+      <div class="field-label">Merienda / picoteo</div>
+      <textarea id="com-m" rows="2" placeholder="ej. manzana, galletas, queso..."></textarea>
       <div class="field-label">Cena</div>
       <textarea id="com-c" rows="2" placeholder="ej. yogur griego + guineo"></textarea>
+      <div class="field-label">Tés del día</div>
+      <div class="chip-grid" style="margin-bottom:8px">
+        <button class="chip" data-k="te-burdock" onclick="tog(this,'on');addTe('Burdock')"><span class="dot"></span>Té de Burdock</button>
+        <button class="chip" data-k="te-jengibre" onclick="tog(this,'on');addTe('Jengibre')"><span class="dot"></span>Té de jengibre</button>
+        <button class="chip" data-k="te-manzanilla" onclick="tog(this,'on');addTe('Manzanilla')"><span class="dot"></span>Manzanilla</button>
+        <button class="chip" data-k="te-senna" onclick="tog(this,'on');addTe('Senna')"><span class="dot"></span>Senna</button>
+      </div>
+      <textarea id="com-te" rows="2" placeholder="Otros tés o añade más..."></textarea>
 
       <div class="label">Posibles triggers</div>
       <div class="chip-grid">
@@ -770,28 +804,42 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v4l3 3-3 3v4h6v-4l-3-3 3-3V2H9z"/><line x1="12" y1="9" x2="12" y2="9"/></svg>
         Inyecciones de hoy
       </div>
-      <div id="inj-list">
-        <div class="inject-row">
-          <div class="inject-info">
-            <div class="inject-name">GLP-1 / estimulador GLP-1</div>
-            <div class="inject-date" id="inj-glp1-last">Última: —</div>
-          </div>
-          <button class="toggle-switch" id="tog-glp1" onclick="togInject('glp1')"></button>
+      <div class="inject-row">
+        <div class="inject-info">
+          <div class="inject-name">Tirzepatide</div>
+          <div class="inject-date" id="inj-tirz-last">Última: —</div>
         </div>
-        <div class="inject-row">
-          <div class="inject-info">
-            <div class="inject-name">Glutatión</div>
-            <div class="inject-date" id="inj-glutat-last">Última: —</div>
-          </div>
-          <button class="toggle-switch" id="tog-glutat" onclick="togInject('glutat')"></button>
+        <button class="toggle-switch" id="tog-tirz" onclick="togInject('tirz')"></button>
+      </div>
+      <div class="inject-row">
+        <div class="inject-info">
+          <div class="inject-name">Glutatión</div>
+          <div class="inject-date" id="inj-glutat-last">Última: —</div>
         </div>
-        <div class="inject-row">
-          <div class="inject-info">
-            <div class="inject-name">Lipomix</div>
-            <div class="inject-date" id="inj-lipo-last">Última: —</div>
-          </div>
-          <button class="toggle-switch" id="tog-lipo" onclick="togInject('lipo')"></button>
+        <button class="toggle-switch" id="tog-glutat" onclick="togInject('glutat')"></button>
+      </div>
+      <div class="inject-row">
+        <div class="inject-info">
+          <div class="inject-name">Lipomix</div>
+          <div class="inject-date" id="inj-lipo-last">Última: —</div>
         </div>
+        <button class="toggle-switch" id="tog-lipo" onclick="togInject('lipo')"></button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="field-label">Dosis Tirzepatide (mg) — si cambió</div>
+      <input type="text" id="tirz-dosis" placeholder="ej. 2.5, 5, 7.5, 10..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .2s;margin-bottom:14px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+
+      <div class="label">Efectos GI Tirzepatide (días post-inyección)</div>
+      <div class="chip-grid">
+        <button class="chip" data-k="tirz-nausea" onclick="tog(this,'warn')"><span class="dot"></span>Náusea</button>
+        <button class="chip" data-k="tirz-llenura" onclick="tog(this,'warn')"><span class="dot"></span>Llenura rápida</button>
+        <button class="chip" data-k="tirz-estren" onclick="tog(this,'warn')"><span class="dot"></span>Estreñimiento</button>
+        <button class="chip" data-k="tirz-reflujo" onclick="tog(this,'warn')"><span class="dot"></span>Reflujo / ardor</button>
+        <button class="chip" data-k="tirz-dolorabd" onclick="tog(this,'warn')"><span class="dot"></span>Dolor abdominal</button>
+        <button class="chip" data-k="tirz-aversion" onclick="tog(this,'amber')"><span class="dot"></span>Aversión a grasosas</button>
+        <button class="chip" data-k="tirz-antojo" onclick="tog(this,'on')"><span class="dot"></span>Antojo reducido</button>
+        <button class="chip" data-k="tirz-ok" onclick="tog(this,'on')"><span class="dot"></span>Sin efectos hoy</button>
       </div>
     </div>
 
@@ -845,6 +893,10 @@
       </div>
 
       <div class="divider"></div>
+      <div class="field-label">Otros suplementos</div>
+      <input type="text" id="s-otros" placeholder="ej. probiótico, colágeno..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .2s;margin-bottom:12px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+
+      <div class="divider"></div>
       <div class="supl-item advil-item" data-k="s-advil" onclick="togSupl(this)">
         <span class="supl-name">Advil / NSAID ⚠</span>
         <div class="supl-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -883,14 +935,38 @@ const bristol_labels = {
 let state = {};
 let bristolVal = null;
 const todayKey = new Date().toISOString().split('T')[0];
+let activeKey = todayKey;
 
-// Date badge
+// Date badge and picker init
 (function(){
   const d = new Date();
   const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  document.getElementById('todayBadge').textContent = days[d.getDay()] + ', ' + d.getDate() + ' de ' + months[d.getMonth()];
+  document.getElementById('active-date').value = todayKey;
+  document.getElementById('active-date').max = todayKey;
 })();
+
+function changeActiveDate(val) {
+  activeKey = val;
+  const isToday = val === todayKey;
+  document.getElementById('past-day-notice').style.display = isToday ? 'none' : 'block';
+}
+
+function resetToToday() {
+  activeKey = todayKey;
+  document.getElementById('active-date').value = todayKey;
+  document.getElementById('past-day-notice').style.display = 'none';
+}
+
+function addTe(nombre) {
+  const el = document.getElementById('com-te');
+  const cur = el.value.trim();
+  if (cur && !cur.includes(nombre)) {
+    el.value = cur + ', ' + nombre;
+  } else if (!cur) {
+    el.value = nombre;
+  }
+}
 
 // Tabs
 function switchTab(id, btn) {
@@ -902,6 +978,13 @@ function switchTab(id, btn) {
 }
 
 // Sliders
+function updAguaLabel(val) {
+  const oz = val * 8;
+  const meta = oz >= 75;
+  document.getElementById('agua-label').textContent = '≈ ' + oz + ' oz — ' + (meta ? 'meta cumplida ✓' : 'por debajo de 75 oz ⚠');
+  document.getElementById('agua-label').style.color = meta ? 'var(--green)' : 'var(--amber)';
+}
+
 function sv(key, val) {
   document.getElementById('sv-'+key).textContent = val;
   state['sl-'+key] = parseInt(val);
@@ -967,8 +1050,9 @@ function saveInj(obj) { try { localStorage.setItem(INJ_KEY, JSON.stringify(obj))
 
 function loadInjDates() {
   const inj = getInj();
-  ['glp1','glutat','lipo'].forEach(id => {
-    if (inj[id]) document.getElementById('inj-'+id+'-last').textContent = 'Última: ' + inj[id];
+  ['glp1','glutat','lipo','tirz'].forEach(id => {
+    const el = document.getElementById('inj-'+id+'-last');
+    if (el && inj[id]) el.textContent = 'Última: ' + inj[id];
   });
 }
 
@@ -987,14 +1071,15 @@ function getSliders() {
     acne: parseInt(document.getElementById('s-acne').value),
     hambre: parseInt(document.getElementById('s-hambre').value),
     animo: parseInt(document.getElementById('s-animo').value),
-    cefal: parseInt(document.getElementById('s-cefal').value)
+    cefal: parseInt(document.getElementById('s-cefal').value),
+    agua: parseInt(document.getElementById('s-agua').value)
   };
 }
 
 function saveSection(section) {
   const hist = getHistory();
-  let today = hist.find(d => d.date === todayKey);
-  if (!today) { today = { date: todayKey }; hist.unshift(today); }
+  let today = hist.find(d => d.date === activeKey);
+  if (!today) { today = { date: activeKey }; hist.unshift(today); hist.sort((a,b) => b.date.localeCompare(a.date)); }
   const sl = getSliders();
 
   if (section === 'manana') {
@@ -1016,7 +1101,8 @@ function saveSection(section) {
     };
   } else if (section === 'noche') {
     today.noche = {
-      hambre: sl.hambre, animo: sl.animo, cefal: sl.cefal,
+      hambre: sl.hambre, animo: sl.animo, cefal: sl.cefal, agua: sl.agua,
+      aguaMeta: !!state['agua-meta'], aguaPoca: !!state['agua-poca'],
       cravings: ['dulce','sal','nada','otros'].filter(c => state['crav-'+c]).join(',') || null,
       triggers: ['soya','frito','gluten','avena','nuts','lacteos','azucar','fuera'].filter(t => state['trig-'+t]).join(',') || null,
       estres: !!state['estres'], pocoSueno: !!state['poco-sueno'],
@@ -1025,7 +1111,9 @@ function saveSection(section) {
       mov: ['gym','cami','hiking','padel'].filter(m => state['mov-'+m]).join(',') || null,
       desayuno: document.getElementById('com-d').value,
       almuerzo: document.getElementById('com-a').value,
+      merienda: document.getElementById('com-m').value,
       cena: document.getElementById('com-c').value,
+      tes: document.getElementById('com-te').value,
       obs: document.getElementById('obs').value
     };
   } else if (section === 'supl') {
@@ -1034,8 +1122,11 @@ function saveSection(section) {
       lion: !!state['s-lion'], b12: !!state['s-b12'], vitc: !!state['s-vitc'],
       hierro: !!state['s-hierro'], premarin: !!state['s-premarin'],
       omega: !!state['s-omega'], astrag: !!state['s-astrag'],
+      otros: document.getElementById('s-otros').value || null,
       advil: !!state['s-advil'],
-      injGlp1: !!state['inj-glp1'], injGlutat: !!state['inj-glutat'], injLipo: !!state['inj-lipo']
+      injTirz: !!state['inj-tirz'], injGlutat: !!state['inj-glutat'], injLipo: !!state['inj-lipo'],
+      tirzDosis: document.getElementById('tirz-dosis').value || null,
+      tirzEfectos: ['nausea','llenura','estren','reflujo','dolorabd','aversion','antojo','ok'].filter(e => state['tirz-'+e]).join(',') || null
     };
   }
 
@@ -1087,8 +1178,10 @@ function renderHistory() {
     }
     if (d.supl) {
       const s = d.supl;
-      const injs = [s.injGlp1&&'GLP-1', s.injGlutat&&'Glutatión', s.injLipo&&'Lipomix'].filter(Boolean);
+      const injs = [s.injTirz&&'Tirzepatide', s.injGlp1&&'GLP-1', s.injGlutat&&'Glutatión', s.injLipo&&'Lipomix'].filter(Boolean);
       if (injs.length) chips.push(`<span class="hchip blue">inj: ${injs.join(', ')}</span>`);
+      if (s.tirzDosis) chips.push(`<span class="hchip blue">dosis: ${s.tirzDosis}mg</span>`);
+      if (s.tirzEfectos && !s.tirzEfectos.includes('ok')) chips.push(`<span class="hchip amber">GI tirz: ${s.tirzEfectos}</span>`);
       if (s.advil) chips.push(`<span class="hchip red">Advil ⚠</span>`);
     }
     const note = d.noche?.obs ? `<div class="hist-note">"${d.noche.obs.slice(0,90)}${d.noche.obs.length>90?'…':''}"</div>` : '';
@@ -1099,11 +1192,11 @@ function renderHistory() {
 function exportCSV() {
   const hist = getHistory();
   if (!hist.length) { showToast('Sin datos aún', true); return; }
-  const cols = ['fecha','energia','sueno','cadera','espa','espb','pies','acne','bano','bristol','sangre','quiste','cara_hinch','barriga_hinch','hambre','animo','cefal','cravings','triggers','movimiento','desayuno','almuerzo','cena','obs','premarin','dim','hierro','advil','inj_glp1','inj_glutat','inj_lipo'];
+  const cols = ['fecha','energia','sueno','cadera','espa','espb','pies','acne','bano','bristol','sangre','quiste','cara_hinch','barriga_hinch','hambre','animo','cefal','agua_vasos','cravings','triggers','movimiento','desayuno','almuerzo','merienda','cena','tes','obs','premarin','dim','hierro','otros_supl','advil','inj_tirz','tirz_dosis','tirz_efectos','inj_glutat','inj_lipo'];
   const rows = [cols];
   hist.forEach(d => {
     const m = d.manana||{}; const n = d.noche||{}; const s = d.supl||{};
-    rows.push([d.date,m.energia??'',m.sueno??'',m.cadera??'',m.espa??'',m.espb??'',m.pies??'',m.acne??'',m.bano??'',m.bristol??'',m.sangre??'',m.quiste??'',m.caraHinch?'sí':'',m.barrigaHinch?'sí':'',n.hambre??'',n.animo??'',n.cefal??'',n.cravings??'',n.triggers??'',n.mov??'',n.desayuno??'',n.almuerzo??'',n.cena??'',n.obs??'',s.premarin?'✓':'',s.dim?'✓':'',s.hierro?'✓':'',s.advil?'✓':'',s.injGlp1?'✓':'',s.injGlutat?'✓':'',s.injLipo?'✓':'']);
+    rows.push([d.date,m.energia??'',m.sueno??'',m.cadera??'',m.espa??'',m.espb??'',m.pies??'',m.acne??'',m.bano??'',m.bristol??'',m.sangre??'',m.quiste??'',m.caraHinch?'sí':'',m.barrigaHinch?'sí':'',n.hambre??'',n.animo??'',n.cefal??'',n.agua??'',n.cravings??'',n.triggers??'',n.mov??'',n.desayuno??'',n.almuerzo??'',n.merienda??'',n.cena??'',n.tes??'',n.obs??'',s.premarin?'✓':'',s.dim?'✓':'',s.hierro?'✓':'',s.otros??'',s.advil?'✓':'',s.injTirz?'✓':'',s.tirzDosis??'',s.tirzEfectos??'',s.injGlutat?'✓':'',s.injLipo?'✓':'']);
   });
   const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const a = document.createElement('a');
@@ -1114,6 +1207,9 @@ function exportCSV() {
 }
 
 loadInjDates();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
