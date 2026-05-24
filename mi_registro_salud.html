@@ -950,12 +950,116 @@ function changeActiveDate(val) {
   activeKey = val;
   const isToday = val === todayKey;
   document.getElementById('past-day-notice').style.display = isToday ? 'none' : 'block';
+  loadDateIntoForm(val);
 }
 
 function resetToToday() {
   activeKey = todayKey;
   document.getElementById('active-date').value = todayKey;
   document.getElementById('past-day-notice').style.display = 'none';
+  loadDateIntoForm(todayKey);
+}
+
+function setSlider(id, val, displayId) {
+  const el = document.getElementById(id);
+  if (el) { el.value = val; document.getElementById(displayId).textContent = val; }
+}
+
+function setChip(key, cls) {
+  state[key] = cls;
+  const btn = document.querySelector('[data-k="'+key+'"]');
+  if (btn) btn.className = (btn.classList.contains('chip') ? 'chip' : 'chip') + (cls ? ' '+cls : '');
+}
+
+function loadDateIntoForm(dateKey) {
+  // Reset state and UI
+  state = {};
+  // Reset all chips
+  document.querySelectorAll('.chip').forEach(b => { b.className = 'chip'; });
+  document.querySelectorAll('.supl-item').forEach(i => i.classList.remove('checked'));
+  document.querySelectorAll('.toggle-switch').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('textarea').forEach(t => t.value = '');
+  document.getElementById('tirz-dosis').value = '';
+  document.getElementById('s-otros').value = '';
+  // Reset sliders to default
+  const sliderDefaults = {energia:5,sueno:5,cadera:0,espa:0,espb:0,pies:0,acne:0,hambre:5,animo:5,cefal:0,agua:6};
+  Object.entries(sliderDefaults).forEach(([k,v]) => {
+    const el = document.getElementById('s-'+k);
+    const sv = document.getElementById('sv-'+k);
+    if (el) { el.value = v; if(sv) sv.textContent = v; }
+  });
+  updAguaLabel(6);
+  document.getElementById('bristol-section').style.display = 'none';
+  document.querySelectorAll('.bristol-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('bristol-desc').textContent = 'Toca un número para ver la descripción';
+
+  // Load saved data for this date
+  const hist = getHistory();
+  const day = hist.find(d => d.date === dateKey);
+  if (!day) return;
+
+  // MAÑANA
+  const m = day.manana || {};
+  if (m.energia != null) { document.getElementById('s-energia').value = m.energia; document.getElementById('sv-energia').textContent = m.energia; }
+  if (m.sueno != null) { document.getElementById('s-sueno').value = m.sueno; document.getElementById('sv-sueno').textContent = m.sueno; }
+  if (m.cadera != null) { document.getElementById('s-cadera').value = m.cadera; document.getElementById('sv-cadera').textContent = m.cadera; }
+  if (m.espa != null) { document.getElementById('s-espa').value = m.espa; document.getElementById('sv-espa').textContent = m.espa; }
+  if (m.espb != null) { document.getElementById('s-espb').value = m.espb; document.getElementById('sv-espb').textContent = m.espb; }
+  if (m.pies != null) { document.getElementById('s-pies').value = m.pies; document.getElementById('sv-pies').textContent = m.pies; }
+  if (m.acne != null) { document.getElementById('s-acne').value = m.acne; document.getElementById('sv-acne').textContent = m.acne; }
+  if (m.bano) { const b = document.querySelector('[data-k="bano-'+m.bano+'"]'); if(b) { b.className = 'chip on'; state['bano-'+m.bano]='on'; } if(m.bano==='si') showBristol(true); }
+  if (m.bristol) { setBristol(m.bristol); showBristol(true); }
+  if (m.sangre) { const b = document.querySelector('[data-k="sang-'+m.sangre+'"]'); if(b){ const c=m.sangre==='oscura'?'warn':m.sangre==='roja'?'amber':'on'; b.className='chip '+c; state['sang-'+m.sangre]=c; } }
+  if (m.quiste) { const b = document.querySelector('[data-k="quiste-'+m.quiste+'"]'); if(b){ const c=m.quiste==='si'?'warn':'on'; b.className='chip '+c; state['quiste-'+m.quiste]=c; } }
+  if (m.zona) m.zona.split(',').forEach(z => { const b=document.querySelector('[data-k="zona-'+z+'"]'); if(b){b.className='chip amber';state['zona-'+z]='amber';} });
+  ['caraHinch','barrigaHinch','retLiq','inflam'].forEach((k,i) => {
+    const keys=['cara-hinch','barriga-hinch','ret-liq','inflam-gen'];
+    if(m[k]){const b=document.querySelector('[data-k="'+keys[i]+'"]');if(b){b.className='chip amber';state[keys[i]]='amber';}}
+  });
+  ['suenoDesc','suenoNoche','suenoDolor'].forEach((k,i) => {
+    const keys=['suen-desc','suen-noche','suen-dolor']; const cls=['on','amber','warn'];
+    if(m[k]){const b=document.querySelector('[data-k="'+keys[i]+'"]');if(b){b.className='chip '+cls[i];state[keys[i]]=cls[i];}}
+  });
+
+  // NOCHE
+  const n = day.noche || {};
+  if (n.hambre != null) { document.getElementById('s-hambre').value = n.hambre; document.getElementById('sv-hambre').textContent = n.hambre; }
+  if (n.animo != null) { document.getElementById('s-animo').value = n.animo; document.getElementById('sv-animo').textContent = n.animo; }
+  if (n.cefal != null) { document.getElementById('s-cefal').value = n.cefal; document.getElementById('sv-cefal').textContent = n.cefal; }
+  if (n.agua != null) { document.getElementById('s-agua').value = n.agua; document.getElementById('sv-agua').textContent = n.agua; updAguaLabel(n.agua); }
+  if (n.cravings) n.cravings.split(',').forEach(c => { const b=document.querySelector('[data-k="crav-'+c+'"]'); if(b){b.className='chip amber';state['crav-'+c]='amber';} });
+  if (n.triggers) n.triggers.split(',').forEach(t => { const b=document.querySelector('[data-k="trig-'+t+'"]'); if(b){b.className='chip warn';state['trig-'+t]='warn';} });
+  if (n.estres) { const b=document.querySelector('[data-k="estres"]'); if(b){b.className='chip warn';state['estres']='warn';} }
+  if (n.pocoSueno) { const b=document.querySelector('[data-k="poco-sueno"]'); if(b){b.className='chip amber';state['poco-sueno']='amber';} }
+  if (n.hormonal) n.hormonal.split(',').forEach(h => { const b=document.querySelector('[data-k="horm-'+h+'"]'); if(b){const c=h==='libido'?'on':'amber';b.className='chip '+c;state['horm-'+h]=c;} });
+  if (n.ardor) { const b=document.querySelector('[data-k="gi-ardor"]'); if(b){b.className='chip warn';state['gi-ardor']='warn';} }
+  if (n.nausea) { const b=document.querySelector('[data-k="gi-nausea"]'); if(b){b.className='chip warn';state['gi-nausea']='warn';} }
+  if (n.mov) n.mov.split(',').forEach(mv => { const b=document.querySelector('[data-k="mov-'+mv+'"]'); if(b){b.className='chip on';state['mov-'+mv]='on';} });
+  if (n.desayuno) document.getElementById('com-d').value = n.desayuno;
+  if (n.almuerzo) document.getElementById('com-a').value = n.almuerzo;
+  if (n.merienda) document.getElementById('com-m').value = n.merienda;
+  if (n.cena) document.getElementById('com-c').value = n.cena;
+  if (n.tes) document.getElementById('com-te').value = n.tes;
+  if (n.obs) document.getElementById('obs').value = n.obs;
+  if (n.aguaMeta) { const b=document.querySelector('[data-k="agua-meta"]'); if(b){b.className='chip on';state['agua-meta']='on';} }
+  if (n.aguaPoca) { const b=document.querySelector('[data-k="agua-poca"]'); if(b){b.className='chip warn';state['agua-poca']='warn';} }
+
+  // SUPL
+  const s = day.supl || {};
+  const suplMap = {magnesio:'s-magnesio',lemon:'s-lemon',dim:'s-dim',lion:'s-lion',b12:'s-b12',vitc:'s-vitc',hierro:'s-hierro',premarin:'s-premarin',omega:'s-omega',astrag:'s-astrag'};
+  Object.entries(suplMap).forEach(([sk,dk]) => {
+    if(s[sk]){ state[dk]=true; const el=document.querySelector('[data-k="'+dk+'"]'); if(el) el.classList.add('checked'); }
+  });
+  if(s.advil){ state['s-advil']=true; const el=document.querySelector('[data-k="s-advil"]'); if(el) el.classList.add('checked'); }
+  if(s.otros) document.getElementById('s-otros').value = s.otros;
+  if(s.tirzDosis) document.getElementById('tirz-dosis').value = s.tirzDosis;
+  ['tirz','glutat','lipo'].forEach(id => {
+    const key = 'inj'+id.charAt(0).toUpperCase()+id.slice(1);
+    if(s[key]||s['inj'+id.charAt(0).toUpperCase()+id.slice(1)]){
+      const tog=document.getElementById('tog-'+id); if(tog) tog.classList.add('on'); state['inj-'+id]=true;
+    }
+  });
+  if(s.tirzEfectos) s.tirzEfectos.split(',').forEach(e => { const b=document.querySelector('[data-k="tirz-'+e+'"]'); if(b){const c=e==='ok'||e==='antojo'?'on':e==='aversion'?'amber':'warn';b.className='chip '+c;state['tirz-'+e]=c;} });
 }
 
 function addTe(nombre) {
@@ -1207,6 +1311,7 @@ function exportCSV() {
 }
 
 loadInjDates();
+loadDateIntoForm(todayKey);
 </script>
 </body>
 </html>
